@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<contexts>
+   <context id="NewHibernatePropertyEncryptionPage_ContextID" title="Hibernate-Jasypt Encryption">
+      <description>Information about encryption</description>
+      <topic label="What is sensitive data?" href="html/WhatIsSensitiveData.html" />
+      <topic href="html/SensitiveDataExamples.html" label="Examples of Sensitive Information"/>
+   </context>
+</contexts>

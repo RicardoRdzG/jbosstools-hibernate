@@ -25,8 +25,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+//import org.apache.commons.logging.Log;
+//import org.apache.commons.logging.LogFactory;
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
@@ -34,6 +34,8 @@ import org.eclipse.core.runtime.Plugin;
 import org.hibernate.eclipse.logging.LoggingHelper;
 import org.hibernate.eclipse.logging.PluginLogManager;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author max
@@ -54,7 +56,7 @@ public class HibernatePlugin extends Plugin {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		configureLog4jHooks();
-		Log log = LogFactory.getLog(HibernatePlugin.class);
+		Logger log = LoggerFactory.getLogger(HibernatePlugin.class);
 		log.info("HibernatePlugin Started"); //$NON-NLS-1$
 	}
 

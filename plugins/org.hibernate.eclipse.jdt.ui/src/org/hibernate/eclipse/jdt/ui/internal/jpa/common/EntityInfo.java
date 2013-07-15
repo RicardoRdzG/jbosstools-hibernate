@@ -230,6 +230,9 @@ public class EntityInfo {
 		return references.get(fieldId);
 	}
 	
+	/**
+	 * Add required imports and use heuristics to find primary id name
+	 */
 	public void adjustParameters() {
 		if (isImplicitConstructorFlag() == true || isDefaultConstructorFlag() == true) {
 			setAddSerializableInterfaceFlag(false);
@@ -290,9 +293,14 @@ public class EntityInfo {
 				}
 			}
 		}
-		if (primaryIdName == null) {
-			primaryIdName = ""; //$NON-NLS-1$
+		
+		if (primaryIdName == null) {//no id Found assign the first candidate if any or nothing
+
+				primaryIdName = ""; //$NON-NLS-1$
 		}
+		adjustPrimaryId(null);
+		if(primaryIdCandidates.iterator().hasNext())
+			primaryIdName=primaryIdCandidates.iterator().next();
 	}
 	
 	public void updateVersionImport(boolean includeFlag) {

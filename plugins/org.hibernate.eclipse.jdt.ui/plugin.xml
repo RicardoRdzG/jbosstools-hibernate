@@ -170,4 +170,11 @@
          </description>
       </wizard>
       </extension>
+    <extension
+       id="org.hibernate.eclipse.jdt.ui.helpContext"
+       point="org.eclipse.help.contexts">
+    <contexts
+          file="HelpContext.xml">
+    </contexts>
+ </extension>
 </plugin>

@@ -163,6 +163,7 @@ public class NewConfigurationWizard extends Wizard implements INewWizard {
                 putIfNotNull(props, Environment.PASS, connectionInfoPage.getPassword() );
                 putIfNotNull(props, Environment.DEFAULT_CATALOG, connectionInfoPage.getDefaultCatalog() );
                 putIfNotNull(props, Environment.DEFAULT_SCHEMA, connectionInfoPage.getDefaultSchema() );
+                /*putIfNotNull(props, Environment.HBM2DDL_AUTO, connectionInfoPage.getHbm2ddl_Auto());*/
         		return openContentStream(props);
         	}
         };

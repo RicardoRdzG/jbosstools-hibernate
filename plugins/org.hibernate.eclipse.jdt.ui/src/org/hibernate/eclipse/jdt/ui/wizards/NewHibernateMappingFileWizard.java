@@ -67,6 +67,7 @@ import org.hibernate.eclipse.console.HibernateConsoleMessages;
 import org.hibernate.eclipse.console.HibernateConsolePlugin;
 import org.hibernate.eclipse.console.utils.EclipseImages;
 import org.hibernate.eclipse.console.utils.FileUtils;
+import org.hibernate.eclipse.jdt.ui.Activator;
 import org.hibernate.eclipse.jdt.ui.internal.JdtUiMessages;
 import org.hibernate.eclipse.jdt.ui.internal.jpa.collect.AllEntitiesInfoCollector;
 import org.hibernate.eclipse.jdt.ui.internal.jpa.common.EntityInfo;
@@ -100,7 +101,9 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 	
 	private NewHibernateMappingFilePage page2 = null;	
 	
-	private NewHibernateMappingPreviewPage previewPage = null;	
+	private NewHibernateMappingPreviewPage previewPage = null;
+
+	private NewHibernatePropertyEncryptionPage encryptionPage;	
 
 	public NewHibernateMappingFileWizard(){
 		setDefaultPageImageDescriptor(EclipseImages.getImageDescriptor(ImageConstants.NEW_WIZARD) );
@@ -131,7 +134,12 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 		page2.setTitle(JdtUiMessages.NewHibernateMappingFilePage_title);
 		page2.setMessage(JdtUiMessages.NewHibernateMappingFilePage_this_wizard_creates, IMessageProvider.WARNING);
 		addPage(page2);		
-
+		
+		encryptionPage = new NewHibernatePropertyEncryptionPage("ColumnEncryption"); //$NON-NLS-1$
+		encryptionPage.setTitle("Property Encryption");
+		encryptionPage.setMessage("Select properties to encrypt", IMessageProvider.WARNING);
+		addPage(encryptionPage);
+		
 		previewPage = new NewHibernateMappingPreviewPage();
 		previewPage.setTitle(JdtUiMessages.NewHibernateMappingPreviewPage_title);
 		addPage(previewPage);
@@ -163,8 +171,11 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 		if (event.getTargetPage() == page2) {
 			updateCompilationUnits();
 			page2.setInput(project_infos);
+		} else if (event.getTargetPage() ==encryptionPage){
+			encryptionPage.setInput(createConfigurations());
 		} else if (event.getTargetPage() == previewPage) {
-			Map<IJavaProject, IPath> places2Gen = getPlaces2Gen();
+			//get configuration from encryption key
+			Map<IJavaProject, IPath> places2Gen = getPlaces2Gen(encryptionPage.getMappings());
 			previewPage.setPlaces2Gen(places2Gen);
 		}
 	}
@@ -292,9 +303,13 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 		}
 	}
 
-	protected Map<IJavaProject, IPath> getPlaces2Gen() {
-		updateCompilationUnits();
-		Map<IJavaProject, Configuration> configs = createConfigurations();
+	/**
+	 * Extracts CU information,
+	 * gets a temporary path for each project selected 
+	 * runs the exporter to create corresponding mapping files
+	 * @return a map of projects to paths
+	 */
+	protected Map<IJavaProject, IPath> getPlaces2Gen(Map<IJavaProject, Configuration> configs) {
 		Map<IJavaProject, IPath> places2Gen = new HashMap<IJavaProject, IPath>();
 		for (Entry<IJavaProject, Configuration> entry : configs.entrySet()) {
 			Configuration config = entry.getValue();
@@ -369,7 +384,7 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 			cleanUpGenFolders();
 		} else {
 			if (previewPage.getChange() == null) {
-				Map<IJavaProject, IPath> places2Gen = getPlaces2Gen();
+				Map<IJavaProject, IPath> places2Gen = getPlaces2Gen(createConfigurations());
 				previewPage.setPlaces2Gen(places2Gen);
 			}
 			previewPage.performFinish();
@@ -444,7 +459,7 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 	private InputStream openContentStream() {
         StringWriter sw = new StringWriter();
         sw.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +  //$NON-NLS-1$
-        		"<!DOCTYPE hibernate-mapping PUBLIC \"-//Hibernate/Hibernate Mapping DTD 3.0//EN\" \"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd\" >\r\n" +  //$NON-NLS-1$
+        		"<!DOCTYPE hibernate-mapping PUBLIC \"-//Hibernate/Hibernate Mapping DTD 3.0//EN\" \"http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd\" >\r\n" +  //$NON-NLS-1$
         		"<hibernate-mapping>\r\n</hibernate-mapping>"); //$NON-NLS-1$
 		try {
             return new ByteArrayInputStream(sw.toString().getBytes("UTF-8") ); //$NON-NLS-1$
@@ -454,6 +469,10 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
         }
 	}
 	
+	/**
+	 * Separates CompilationUnits(CU) by parent projects
+	 * Uses an entityCollector to extract the CU information
+	 */
 	protected void initEntitiesInfo(){
 		if (selectionCU.size() == 0) {
 			return;
@@ -496,6 +515,13 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 		}
 	}
 
+
+	/**
+	 * Extract Compilation Units from obj to the deep specified adding them to selectionCU
+	 * 
+	 * @param obj
+	 * @param depth
+	 */
 	protected void processJavaElements(Object obj, int depth) {
 		if (depth < 0) {
 			return;
@@ -534,13 +560,20 @@ public class NewHibernateMappingFileWizard extends Wizard implements INewWizard,
 		}
 	}
 	
-
+	/**
+	 * Extract information from CUs and create a configuration based on that information for each parent java project
+	 * @return
+	 */
 	protected Map<IJavaProject, Configuration> createConfigurations() {
+		updateCompilationUnits();
 		ConfigurationActor actor = new ConfigurationActor(selectionCU);
 		Map<IJavaProject, Configuration> configs = actor.createConfigurations(processDepth);
 		return configs;
 	}
 	
+	/**
+	 * Recollect information from CU based on the selection made on first page
+	 */
 	protected void updateCompilationUnits(){
 		Assert.isNotNull(page0.getSelection(), JdtUiMessages.NewHibernateMappingFileWizard_selection_cant_be_empty);
 		if ((selectionCU == null) || !page0.getSelection().equals(selection) || 

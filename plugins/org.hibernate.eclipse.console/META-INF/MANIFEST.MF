@@ -8,6 +8,7 @@ Bundle-Activator: org.hibernate.eclipse.console.HibernateConsolePlugin
 Bundle-Vendor: %Bundle-Vendor.0
 Bundle-Localization: plugin
 Export-Package: org.hibernate.eclipse.builder,
+ org.hibernate.eclipse.codegen,
  org.hibernate.eclipse.console,
  org.hibernate.eclipse.console.actions,
  org.hibernate.eclipse.console.ext,
@@ -22,6 +23,7 @@ Export-Package: org.hibernate.eclipse.builder,
  org.hibernate.eclipse.console.views.navigator,
  org.hibernate.eclipse.console.views.properties,
  org.hibernate.eclipse.console.wizards,
+ org.hibernate.eclipse.console.wizards.encryption,
  org.hibernate.eclipse.console.workbench,
  org.hibernate.eclipse.console.workbench.xpl,
  org.hibernate.eclipse.criteriaeditor,
@@ -88,3 +90,4 @@ Require-Bundle: org.hibernate.eclipse.libs;bundle-version="3.4.0",
  org.eclipse.jst.j2ee.web;bundle-version="1.1.500"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Import-Package: org.eclipse.ltk.internal.ui.refactoring

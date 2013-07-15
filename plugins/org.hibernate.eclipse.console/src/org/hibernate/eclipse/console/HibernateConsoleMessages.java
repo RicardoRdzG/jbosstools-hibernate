@@ -545,6 +545,17 @@ public class HibernateConsoleMessages extends NLS {
 	public static String QueryParametersPage_add_query_parameter_tooltip;
 	public static String QueryParametersPage_remove_query_parameter_tooltip;
 	public static String QueryParametersPage_enable_disable_parameters_tooltip;
+	public static String ColumnEncryptionPage_btnNewButton_text;
+	public static String ColumnEncryptionPage_lblPassword_text;
+	public static String ColumnEncryptionPage_lblIterations_text;
+	public static String ColumnEncryptionPage_lblAlgorithms_text;
+	public static String ColumnEncryptionPage_this_message;
+	public static String ColumnEncryptionPage_text_text;
+	public static String ColumnEncryptionPage_grpEncryptorConfiguration_text;
+	public static String ColumnEncryptionPage_this_description;
+	public static String ColumnEncryptionPage_emptyLabel_text;
+	public static String ColumnEncryptionPage_emptyLabel_text_1;
+	public static String ColumnEncryptionPage_algorithmsCombo_toolTipText;
 	//
 	static {
 		// initialize resource bundle

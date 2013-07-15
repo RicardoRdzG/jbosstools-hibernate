@@ -190,6 +190,15 @@ public class DriverClassHelpers {
                    "jdbc:mysql:///test", //$NON-NLS-1$
                    "jdbc:mysql:///<name>" } //$NON-NLS-1$
                );
+        addDriverAndURLS("org.hibernate.dialect.MySQL5Dialect",  //$NON-NLS-1$
+                "com.mysql.jdbc.Driver", //$NON-NLS-1$
+                new String[] {        		
+                   "jdbc:mysql://<hostname>/<database>", //$NON-NLS-1$
+                   "jdbc:mysql:///test", //$NON-NLS-1$
+                   "jdbc:mysql:///<name>", //$NON-NLS-1$
+                   "jdbc:mysql://<host><:port>/<database>" //$NON-NLS-1$
+                    }
+               );
     
         addDriverAndURLS("org.hibernate.dialect.MySQL5InnoDBDialect", //$NON-NLS-1$ 
                 "org.gjt.mm.mysql.Driver", //$NON-NLS-1$

@@ -227,6 +227,7 @@ public class TreeToTableComposite extends Composite {
 		gridData4.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
 		gridData4.verticalAlignment = org.eclipse.swt.layout.GridData.CENTER;
 		GridData gridData3 = new org.eclipse.swt.layout.GridData();
+		
 		gridData3.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
 		gridData3.verticalAlignment = org.eclipse.swt.layout.GridData.CENTER;
 		GridLayout gridLayout1 = new GridLayout();
@@ -268,9 +269,14 @@ public class TreeToTableComposite extends Composite {
 				doRemove();
 			}
 		});
+		
+		GridData gridData2 = new org.eclipse.swt.layout.GridData();
+		
+		gridData2.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
+		gridData2.verticalAlignment = org.eclipse.swt.layout.GridData.CENTER;
 		removeAllButton = new Button(manipulationGroup, SWT.NONE);
 		removeAllButton.setText(HibernateConsoleMessages.TreeToTableComposite_remove_all);
-		removeAllButton.setLayoutData(gridData3);
+		removeAllButton.setLayoutData(gridData2);
 		removeAllButton.addSelectionListener(new org.eclipse.swt.events.SelectionAdapter() {
 			public void widgetSelected(org.eclipse.swt.events.SelectionEvent e) {
 				doRemoveAll();
@@ -377,22 +383,26 @@ public class TreeToTableComposite extends Composite {
 	 *
 	 */
 	private void createComposite() {
-		GridData gridData9 = new org.eclipse.swt.layout.GridData();
-		gridData9.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
-		gridData9.grabExcessHorizontalSpace = true;
-		gridData9.verticalAlignment = org.eclipse.swt.layout.GridData.CENTER;
-		GridLayout gridLayout2 = new GridLayout();
-		gridLayout2.numColumns = 2;
+		
+		
 		GridData gridData8 = new org.eclipse.swt.layout.GridData();
 		gridData8.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
 		gridData8.grabExcessHorizontalSpace = false;
 		gridData8.verticalAlignment = org.eclipse.swt.layout.GridData.FILL;
 		composite = new Composite( this, SWT.NONE );
 		composite.setLayoutData(gridData8);
+		GridLayout gridLayout2 = new GridLayout();
+		gridLayout2.numColumns = 2;
 		composite.setLayout(gridLayout2);
+		
 		emptyLabel = new Label(composite, SWT.NONE);
 		emptyLabel.setText(""); //$NON-NLS-1$
+		GridData gridData9 = new org.eclipse.swt.layout.GridData();
+		gridData9.horizontalAlignment = org.eclipse.swt.layout.GridData.FILL;
+		gridData9.grabExcessHorizontalSpace = true;
+		gridData9.verticalAlignment = org.eclipse.swt.layout.GridData.CENTER;
 		emptyLabel.setLayoutData(gridData9);
+		
 		refreshButton = new Button(composite, SWT.NONE);
 		refreshButton.setText(HibernateConsoleMessages.TreeToTableComposite_refresh);
 		refreshButton

@@ -44,6 +44,8 @@ import org.eclipse.text.edits.ReplaceEdit;
 import org.eclipse.text.edits.TextEdit;
 import org.hibernate.eclipse.console.HibernateConsolePlugin;
 import org.hibernate.eclipse.console.utils.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Preview wizard page for new hibernate mappings.
@@ -54,6 +56,7 @@ import org.hibernate.eclipse.console.utils.FileUtils;
 public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 
 	public static final String HIBERNATE_NEW_HBM_XML_FOLDER_NAME = "hibernateNewHbmXml"; //$NON-NLS-1$
+	public static final Logger log=LoggerFactory.getLogger(NewHibernateMappingPreviewPage.class);
 	
 	protected IPath rootPlace2GenBase = null;
 	protected IPath rootPlace2Gen = null;
@@ -75,6 +78,9 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		super.dispose();
 	}
 
+	/**
+	 * @param places2Gen the collection of paths to temporary folders containing the generated hbm.xml files
+	 */
 	public void setPlaces2Gen(Map<IJavaProject, IPath> places2Gen) {
 		this.places2Gen = places2Gen;
 		updateChanges();
@@ -87,10 +93,14 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		return places2Gen.keySet();
 	}
 
+	/**
+	 * Disconnects files collected at paths2Disconnect from file manager
+	 */
 	protected void performDisconnect() {
 		final ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
 		for (IPath filePathTo_Show : paths2Disconnect) {
 			try {
+				log.debug("Disconnecting "+filePathTo_Show); //$NON-NLS-1$
 				bufferManager.disconnect(filePathTo_Show, LocationKind.IFILE, null);
 			} catch (CoreException e) {
 				HibernateConsolePlugin.getDefault().logErrorMessage("CoreException: ", e); //$NON-NLS-1$
@@ -99,7 +109,11 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		paths2Disconnect.clear();
 	}
 	
+	/**
+	 * Perform textFileChanges
+	 */
 	protected void performCommit() {
+		log.debug("perform textFileChanges changes");
 		final CompositeChange cc = (CompositeChange)getChange();
 		if (cc == null) {
 			return;
@@ -175,6 +189,9 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		return str.toString();
 	}
 
+	/**
+	 * @return Path to a the temporary folder "hibernateNewHbmXml" to place the hbm.xml mapping files 
+	 */
 	public IPath getRootPlace2GenBase() {
 		if (rootPlace2GenBase != null) {
 			return rootPlace2GenBase;
@@ -185,6 +202,10 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		return rootPlace2GenBase;
 	}
 
+	/**
+	 * Get a temporary folder with a unique id to place the hbm.xml files
+	 * @return
+	 */
 	public IPath getRootPlace2Gen() {
 		if (rootPlace2Gen != null) {
 			return rootPlace2Gen;
@@ -201,9 +222,10 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 	 * @param cc
 	 * @param proj
 	 * @param fileSrc
-	 * @return
+	 * @return true if the change was created successfully 
 	 */
 	protected boolean updateOneChange(final CompositeChange cc, final IJavaProject proj, File fileSrc) {
+		log.debug("Creating change for file: " +fileSrc.getPath()); //$NON-NLS-1$
 		boolean res = false;
 		if (!fileSrc.exists()) {
 			return res;
@@ -217,6 +239,7 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		final IPath filePathTo_Show = proj.getPath().append(filePathTo_Proj);
 		final IResource res2Update = proj.getProject().findMember(filePathTo_Proj);
 		if (res2Update != null) {
+			log.debug("Resouce already exist on project "+filePathTo_Proj); //$NON-NLS-1$
 			final ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
 			ITextFileBuffer textFileBuffer = bufferManager.getTextFileBuffer(filePathTo_Show, LocationKind.IFILE);
 			if (textFileBuffer == null) {
@@ -232,6 +255,7 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 				IDocument documentChange = textFileBuffer.getDocument();
 				//
 				String str = readInto(fileSrc);
+				log.debug("Create textEdit change to replace the content of "+((IFile)res2Update).getName()); //$NON-NLS-1$
 				TextEdit textEdit = new ReplaceEdit(0, documentChange.getLength(), str.toString());
 				//
 				TextFileChange change = new TextFileChange(filePathTo_Show.toString(), (IFile)res2Update);
@@ -242,6 +266,7 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 				res = true;
 			}
 		} else {
+			log.debug("Create textFileChange/resourceChange for new hbm.xml "+filePathTo_Show.toString()); //$NON-NLS-1$
 			String str = readInto(fileSrc);
 			CreateTextFileChange change = new CreateTextFileChange(filePathTo_Show, str.toString(), null, "hbm.xml"); //$NON-NLS-1$
 			cc.add(change);
@@ -276,6 +301,9 @@ public class NewHibernateMappingPreviewPage extends PreviewWizardPage {
 		}
 	}
 	
+	/**
+	 * Try to create a composite change set, from the entries in places2Gen
+	 */
 	protected void updateChanges() {
 		performDisconnect();
 		final CompositeChange cc = new CompositeChange(""); //$NON-NLS-1$

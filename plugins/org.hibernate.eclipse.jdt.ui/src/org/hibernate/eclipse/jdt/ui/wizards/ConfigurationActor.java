@@ -86,7 +86,7 @@ public class ConfigurationActor {
 	}	
 
 	/**
-	 * 
+	 * Extract information from CUs and create a configuration for each project based on that information
 	 * @return different configuration for different projects
 	 */
 	public Map<IJavaProject, Configuration> createConfigurations(int processDepth){
@@ -130,10 +130,16 @@ public class ConfigurationActor {
 		return configs;
 	}
 	
+	/**
+	 * Create a configuration for the given project using the information obtained from the entities
+	 * @param project Parent java project
+	 * @param entities Map of entities and their corresponding information
+	 * @return 
+	 */
 	protected Configuration createConfiguration(IJavaProject project, Map<String, EntityInfo> entities) {
 		Configuration config = new Configuration();
-		
-		ProcessEntityInfo processor = new ProcessEntityInfo();
+		Mappings mappings = config.createMappings();
+		ProcessEntityInfo processor = new ProcessEntityInfo(mappings);
 		processor.setEntities(entities);
 		
 		for (Entry<String, EntityInfo> entry : entities.entrySet()) {			
@@ -143,34 +149,36 @@ public class ConfigurationActor {
 				CompilationUnit cu = Utils.getCompilationUnit(icu, true);
 				
 				processor.setEntityInfo(entry.getValue());			
-				cu.accept(processor);
+				cu.accept(processor);//collect entities info
 			}
 		}
 		
-		Mappings mappings = config.createMappings();
-		Collection<PersistentClass> classesCollection = createHierarhyStructure(project, processor.getRootClasses());
-		for (PersistentClass persistentClass : classesCollection) {
-			mappings.addClass(persistentClass);
+		Map<String, PersistentClass> pcCopy = new HashMap<String, PersistentClass>();
+		
+		//add root classes metadata to mappings
+		for (Map.Entry<String, RootClass> entry : processor.getRootClasses().entrySet()) {
+			pcCopy.put(entry.getKey(), entry.getValue());
+			mappings.addClass(entry.getValue());
 		}
+		
+		//process sub classes
+		createTypeHierarhyStructure(project, mappings, pcCopy);
 		return config;
 	}
 	
 	/**
-	 * Replace <class> element on <joined-subclass> or <subclass>.
+	 * Replaces &lt;class&gt; element on &lt;joined-subclass&gt; or &lt;subclass&gt;.
 	 * @param project
+	 * @param mappings
 	 * @param rootClasses
-	 * @return
+	 * @return 
 	 */
-	@SuppressWarnings("unchecked")
-	private Collection<PersistentClass> createHierarhyStructure(IJavaProject project, Map<String, RootClass> rootClasses){
-		Map<String, PersistentClass> pcCopy = new HashMap<String, PersistentClass>();
-		for (Map.Entry<String, RootClass> entry : rootClasses.entrySet()) {
-			pcCopy.put(entry.getKey(), entry.getValue());
-		}
-		for (Map.Entry<String, PersistentClass> entry : pcCopy.entrySet()) {
+	private void createTypeHierarhyStructure(IJavaProject project, Mappings mappings,Map<String, PersistentClass> persistentClasses){
+		
+		for (Map.Entry<String, PersistentClass> entry : persistentClasses.entrySet()) {
 			PersistentClass pc = null;
 			try {
-				pc = getMappedSuperclass(project, pcCopy, (RootClass) entry.getValue());				
+				pc = getMappedSuperclass(project, persistentClasses, (RootClass) entry.getValue());				
 				Subclass subclass = null;
 				if (pc != null){
 					if (pc.isAbstract()){
@@ -185,13 +193,13 @@ public class ConfigurationActor {
 						subclass = new JoinedSubclass(pc);
 					}
 				} else {
-					pc = getMappedImplementedInterface(project, pcCopy, (RootClass) entry.getValue());
+					pc = getMappedImplementedInterface(project, persistentClasses, (RootClass) entry.getValue());
 					if (pc != null){
 						subclass = new SingleTableSubclass(pc);
 					}
 				}
 				if (subclass != null){
-					PersistentClass pastClass = pcCopy.get(entry.getKey());
+					PersistentClass pastClass = persistentClasses.get(entry.getKey());
 					subclass.setClassName(pastClass.getClassName());
 					subclass.setEntityName(pastClass.getEntityName());
 					subclass.setDiscriminatorValue(StringHelper.unqualify(pastClass.getClassName()));
@@ -214,7 +222,6 @@ public class ConfigurationActor {
 				HibernateConsolePlugin.getDefault().log(e);
 			}			
 		}
-		return pcCopy.values();
 	}
 	
 	private PersistentClass getMappedSuperclass(IJavaProject project, Map<String, PersistentClass> persistentClasses, RootClass rootClass) throws JavaModelException{
@@ -267,6 +274,18 @@ class ProcessEntityInfo extends ASTVisitor {
 	
 	TypeVisitor typeVisitor;
 	
+	private Mappings mappings;
+	
+	public ProcessEntityInfo(Mappings mappings) {
+		super();
+		this.mappings=mappings;
+		}
+
+	/**
+	 * Extract table information from entities
+	 * Create rootClasses from each entity 
+	 * @param entities
+	 */
 	public void setEntities(Map<String, EntityInfo> entities) {
 		rootClasses.clear();
 		Iterator<Map.Entry<String, EntityInfo>> it = entities.entrySet().iterator();
@@ -287,7 +306,10 @@ class ProcessEntityInfo extends ASTVisitor {
 		typeVisitor = new TypeVisitor(rootClasses);
 	}
 
-	
+	/**
+	 * Set the current rootClass from this entityInfo 
+	 * @param entityInfo
+	 */
 	public void setEntityInfo(EntityInfo entityInfo) {
 		this.entityInfo = entityInfo;
 		rootClass = rootClasses.get(entityInfo.getFullyQualifiedName());
@@ -304,11 +326,13 @@ class ProcessEntityInfo extends ASTVisitor {
 	public boolean visit(TypeDeclaration node) {
 		if (currentType == null){
 			currentType = node;
-			if ("".equals(entityInfo.getPrimaryIdName())){ //$NON-NLS-1$
+			if ("".equals(entityInfo.getPrimaryIdName())){//generating mapping file for and instance without explicit id field //$NON-NLS-1$
 				//try to guess id
 				FieldDeclaration[] fields = node.getFields();
 				String firstFieldName = ""; //$NON-NLS-1$
 				for (int i = 0; i < fields.length; i++) {
+					if ((fields[i].getModifiers() & (Modifier.FINAL | Modifier.STATIC)) != 0)
+						continue;//final or static fields can not be used for instance id
 					Iterator<VariableDeclarationFragment> itFieldsNames = fields[i].fragments().iterator();
 					while(itFieldsNames.hasNext()) {
 						VariableDeclarationFragment variable = itFieldsNames.next();
@@ -322,12 +346,14 @@ class ProcessEntityInfo extends ASTVisitor {
 								&& !type.isArrayType()
 								&& !Utils.isImplementInterface(
 										new ITypeBinding[]{type.resolveBinding()}, Collection.class.getName())){
-							//set first field as id
+							//set first suitable field as id
 							firstFieldName = variable.getName().getIdentifier();
+							entityInfo.setPrimaryIdName(firstFieldName);	
+							break;
 						}
 					}
 				}
-				entityInfo.setPrimaryIdName(firstFieldName);
+				
 			}
 			return true;
 		}
@@ -337,11 +363,12 @@ class ProcessEntityInfo extends ASTVisitor {
 	
 	@Override
 	public void endVisit(TypeDeclaration node) {
-		if (currentType == node && rootClass.getIdentifierProperty() == null){
+		if (currentType == node && rootClass.getIdentifierProperty() == null){//no id field is provided and none is suitable to be an id
 			//root class should always has id
 			SimpleValue sValue = new SimpleValue();
 			sValue.addColumn(new Column("id".toUpperCase()));//$NON-NLS-1$
 			sValue.setTypeName(Long.class.getName());
+			sValue.setIdentifierGeneratorStrategy("native"); //$NON-NLS-1$
 			Property prop = new Property();
 			prop.setName("id"); //$NON-NLS-1$
 			prop.setValue(sValue);
@@ -374,6 +401,9 @@ class ProcessEntityInfo extends ASTVisitor {
 			}
 			String name = var.getName().getIdentifier();
 			if (name.equals(primaryIdName)) {
+				if(prop.getValue().isSimpleValue())
+					if(entityInfo.isAddGeneratedValueFlag())
+					((SimpleValue)prop.getValue()).setIdentifierGeneratorStrategy("native"); //$NON-NLS-1$
 				rootClass.setIdentifierProperty(prop);
 			} else {
 				rootClass.addProperty(prop);
@@ -489,13 +519,14 @@ class TypeVisitor extends ASTVisitor{
 		Type componentType = type.getComponentType();
 		ITypeBinding tb = componentType.resolveBinding();
 		if (tb == null) return false;//Unresolved binding. Omit the property.
-		if (tb.isPrimitive()){
-			array = new PrimitiveArray(rootClass);
-			
+		if (tb.isPrimitive()){//one to many relationship of primitive types
+			array = new PrimitiveArray( rootClass);
+			String tableName=(rootClass.getTable().getName()+"_"+varName.toUpperCase());  //$NON-NLS-1$
+			Table table=new Table(tableName);
 			SimpleValue value = buildSimpleValue(tb.getName());
 			value.setTable(rootClass.getTable());
 			array.setElement(value);
-			array.setCollectionTable(rootClass.getTable());//TODO what to set?
+			array.setCollectionTable(table);//TODO what to set? is this correct?
 		} else {
 			RootClass associatedClass = rootClasses.get(tb.getBinaryName());
 			array = new Array(rootClass);
@@ -538,20 +569,101 @@ class TypeVisitor extends ASTVisitor{
 		ITypeBinding[] interfaces = Utils.getAllInterfaces(tb);
 		Value value = buildCollectionValue(interfaces);
 		if (value != null) {
-			org.hibernate.mapping.Collection cValue = (org.hibernate.mapping.Collection)value;			
-			if (ref != null && rootClasses.get(ref.fullyQualifiedName) != null){
-				OneToMany oValue = new OneToMany(rootClass);
-				RootClass associatedClass = rootClasses.get(ref.fullyQualifiedName);
-				oValue.setAssociatedClass(associatedClass);
-				oValue.setReferencedEntityName(associatedClass.getEntityName());
-				//Set another table
-				cValue.setCollectionTable(associatedClass.getTable());				
-				cValue.setElement(oValue);				
+			org.hibernate.mapping.Collection cValue = (org.hibernate.mapping.Collection) value;
+			if (ref != null && rootClasses.get(ref.fullyQualifiedName) != null) {
+
+				switch (ref.refType) {
+				case ONE2ONE: {
+					OneToOne oValue = new OneToOne(
+							rootClass.getTable(), rootClass);
+					RootClass associatedClass = rootClasses
+							.get(ref.fullyQualifiedName);
+					
+					oValue.setReferencedEntityName(associatedClass
+							.getEntityName());
+					// Set another table
+					cValue.setCollectionTable(associatedClass.getTable());
+					cValue.setElement(oValue);
+				}
+					break;
+				case ONE2MANY: {
+					OneToMany oValue = new OneToMany(rootClass);
+					RootClass associatedClass = rootClasses
+							.get(ref.fullyQualifiedName);
+					oValue.setAssociatedClass(associatedClass);
+					oValue.setReferencedEntityName(associatedClass
+							.getEntityName());
+					// Set another table
+					cValue.setCollectionTable(associatedClass.getTable());
+					cValue.setElement(oValue);
+				}
+					break;
+				case MANY2ONE: {
+
+					RootClass associatedClass = rootClasses
+							.get(ref.fullyQualifiedName);
+					ManyToOne oValue = new ManyToOne(
+							associatedClass.getTable());
+					oValue.setReferencedEntityName(associatedClass
+							.getEntityName());
+					// Set another table
+					cValue.setCollectionTable(associatedClass.getTable());
+					cValue.setElement(oValue);
+				}
+					break;
+				case MANY2MANY: {
+					Table table = null;
+					switch (ref.owner) {
+					case YES: {
+						String tableName = rootClass.getTable().getName();
+						if (varName.endsWith("s"))
+							tableName += "_"
+									+ varName.toUpperCase().substring(0,
+											varName.length() - 1);
+						table = new Table(tableName);
+					}
+						break;
+					case NO: {
+						String tableName = "";
+						if (varName.endsWith("s"))
+							tableName += varName.toUpperCase().substring(0,
+									varName.length() - 1);
+						table = new Table(tableName + "_"
+								+ rootClass.getTable().getName());
+						cValue.setInverse(true);
+					}
+					}
+
+					ManyToOne mValue = new ManyToOne(table);
+					RootClass associatedClass = rootClasses
+							.get(ref.fullyQualifiedName);
+
+					mValue.setReferencedEntityName(associatedClass
+							.getEntityName());
+					mValue.addColumn(new Column("ID"
+							+ associatedClass.getTable().getName()));
+					cValue.setCollectionTable(table);
+					cValue.setElement(mValue);
+				}break;
+				default:
+					OneToMany oValue = new OneToMany(rootClass);
+					RootClass associatedClass = rootClasses
+							.get(ref.fullyQualifiedName);
+					oValue.setAssociatedClass(associatedClass);
+					oValue.setReferencedEntityName(associatedClass
+							.getEntityName());
+					// Set another table
+					cValue.setCollectionTable(associatedClass.getTable());
+					cValue.setElement(oValue);
+				}//end switch
+							
 			} else {
 				SimpleValue elementValue = buildSimpleValue(tb.getTypeArguments()[0].getQualifiedName());
 				elementValue.setTable(rootClass.getTable());
 				cValue.setElement(elementValue);
-				cValue.setCollectionTable(rootClass.getTable());//TODO what to set?
+				String tableName=rootClass.getTable().getName()+"_"+varName.toUpperCase();//.substring(0, varName.length()-1);
+				Table table=new Table(tableName);
+				cValue.setCollectionTable(table);//TODO what to set?is this correct?
 			}
 			if (value instanceof org.hibernate.mapping.List){
 				((IndexedCollection)cValue).setIndex(new SimpleValue());
@@ -595,7 +707,9 @@ class TypeVisitor extends ASTVisitor{
 		if (value != null){
 			SimpleValue element = buildSimpleValue("string");//$NON-NLS-1$
 			((org.hibernate.mapping.Collection) value).setElement(element);
-			((org.hibernate.mapping.Collection) value).setCollectionTable(rootClass.getTable());//TODO what to set?
+			String tableName=rootClass.getTable().getName()+"_"+varName.toUpperCase();//using this form since this is a collection //$NON-NLS-1$
+			Table table=new Table(tableName);
+			((org.hibernate.mapping.Collection) value).setCollectionTable(table);//TODO what to set?
 			buildProperty(value);
 			if (value instanceof org.hibernate.mapping.List){
 				((IndexedCollection)value).setIndex(new SimpleValue());
@@ -683,6 +797,8 @@ class TypeVisitor extends ASTVisitor{
 		key.setTypeName("string");//$NON-NLS-1$
 		if (StringHelper.isNotEmpty(entityInfo.getPrimaryIdName())){
 			key.addColumn(new Column(entityInfo.getPrimaryIdName().toUpperCase()));
+			if(rootClass.getIdentifierProperty()!=null&&entityInfo.getPrimaryIdName().equalsIgnoreCase(rootClass.getIdentifierProperty().getName()))
+				key.setTypeName(rootClass.getIdentifierProperty().getValue().getType().getName());
 		}
 		cValue.setKey(key);
 		cValue.setLazy(true);

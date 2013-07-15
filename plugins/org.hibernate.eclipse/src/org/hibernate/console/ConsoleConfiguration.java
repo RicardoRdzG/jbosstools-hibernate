@@ -50,9 +50,12 @@ import org.hibernate.console.preferences.ConsoleConfigurationPreferences;
 import org.hibernate.console.preferences.PreferencesClassPathUtils;
 import org.hibernate.eclipse.libs.FakeDelegatingDriver;
 import org.hibernate.tool.hbm2x.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConsoleConfiguration implements ExecutionContextHolder {
 
+	static Logger log = LoggerFactory.getLogger(ConsoleConfiguration.class);
 	private ExecutionContext executionContext;
 	private ConsoleConfigClassLoader classLoader = null;
 
@@ -212,13 +215,16 @@ public class ConsoleConfiguration implements ExecutionContextHolder {
 		
 					public Class<?> loadClass(String name) throws ClassNotFoundException {
 						try {
+							log.debug("loading class"+name); //$NON-NLS-1$
 							return super.loadClass(name);
 						} catch (ClassNotFoundException cnfe) {
+							log.debug("loading class failed: "+name); //$NON-NLS-1$
 							throw cnfe;
 						}
 					}
 					
 					public URL getResource(String name) {
+						log.debug("get resource "+name); //$NON-NLS-1$
 					      return super.getResource(name);
 					}
 				};
@@ -228,6 +234,8 @@ public class ConsoleConfiguration implements ExecutionContextHolder {
 	}
 
 	/**
+	 * Creates a new thread to read configuration properties and meta data mappings
+	 * a new class loader is used
 	 * @return
 	 *
 	 */

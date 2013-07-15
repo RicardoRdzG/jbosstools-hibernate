@@ -335,6 +335,7 @@ public class AllEntitiesInfoCollector {
 	}
 
 	/**
+	 * resolve parent/child relations
 	 * process all entities pairs iteratively:
 	 * firstly process pairs with more information about and
 	 * pairs with small information about - process in last order

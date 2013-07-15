@@ -91,6 +91,8 @@ public class NewConfigurationWizardPage extends WizardPage {
     
     private String defaultConnectionProfile = null;
 
+	private Combo hbm2ddl_AutoCombo;
+
     /**
      * Constructor for SampleNewWizardPage.
      * @param page
@@ -252,7 +254,17 @@ public class NewConfigurationWizardPage extends WizardPage {
         gd = new GridData(GridData.FILL_HORIZONTAL);
         passwordText.setLayoutData(gd);
         passwordText.addModifyListener(listener);
-
+        
+        label = new Label(driverManagerTabContainer, SWT.NULL);
+        label.setText("hbm2ddl_&Auto:");
+        hbm2ddl_AutoCombo = new Combo(driverManagerTabContainer, SWT.NULL);
+        fillHerUp(hbm2ddl_AutoCombo, new String[]{"false","create-drop","create","update","validate"});
+        hbm2ddl_AutoCombo.select(0);
+        gd = new GridData(GridData.FILL_HORIZONTAL);
+        gd.grabExcessHorizontalSpace = true;
+        hbm2ddl_AutoCombo.setLayoutData(gd);
+        hbm2ddl_AutoCombo.addModifyListener(listener);
+        
         fillLabel(container);
         fillLabel(container);
 
