@@ -71,7 +71,7 @@ import org.hibernate.eclipse.console.model.IRevEngColumn;
 import org.hibernate.eclipse.console.model.IRevEngTable;
 import org.hibernate.eclipse.console.model.IReverseEngineeringDefinition;
 import org.hibernate.eclipse.console.model.ITableFilter;
-import org.hibernate.eclipse.console.wizards.RevEngWizardProperties;
+//import org.hibernate.eclipse.console.wizards.RevEngWizardProperties;
 import org.hibernate.eclipse.console.wizards.encryption.CustomContainerCheckedTreeViewer;
 import org.hibernate.eclipse.console.workbench.BasicWorkbenchAdapter;
 import org.hibernate.eclipse.console.workbench.DeferredContentProvider;

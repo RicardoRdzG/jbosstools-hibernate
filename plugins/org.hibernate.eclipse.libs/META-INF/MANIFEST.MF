@@ -37,7 +37,10 @@ Bundle-ClassPath: .,
  lib/hibernate/slf4j-api-1.5.8.jar,
  lib/hibernate/slf4j-log4j12-1.5.8.jar,
  lib/hibernate/commons-collections-3.1.jar,
- lib/tools/hibernate-tools-3.4.0.CR2.jar
+ lib/tools/hibernate-tools-3.4.0.CR2.jar,
+ lib/jasypt/jasypt-hibernate3.jar,
+ lib/jasypt/jasypt-hibernate4.jar,
+ lib/jasypt/jasypt.jar
 Bundle-Activator: org.hibernate.eclipse.libs.HibernateLibsPlugin
 Require-Bundle: org.eclipse.core.runtime
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6

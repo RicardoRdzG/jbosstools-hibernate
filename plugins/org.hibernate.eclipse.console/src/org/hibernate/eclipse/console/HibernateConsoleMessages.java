@@ -545,6 +545,9 @@ public class HibernateConsoleMessages extends NLS {
 	public static String QueryParametersPage_add_query_parameter_tooltip;
 	public static String QueryParametersPage_remove_query_parameter_tooltip;
 	public static String QueryParametersPage_enable_disable_parameters_tooltip;
+	/**
+	 * @since 3.6
+	 */
 	public static String ColumnEncryptionPage_btnNewButton_text;
 	public static String ColumnEncryptionPage_lblPassword_text;
 	public static String ColumnEncryptionPage_lblIterations_text;
